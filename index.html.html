@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Eisenhower Matrix Challenge</title>
+<style>
+:root {
+  --bg:#f6f8fb; --ink:#172033; --muted:#64748b; --line:#d8e1ef; --card:#ffffff;
+  --do:#ef4444; --schedule:#2563eb; --delegate:#f59e0b; --eliminate:#6b7280; --ok:#10b981;
+  --shadow:0 12px 30px rgba(23,32,51,.10);
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink);
+  background: radial-gradient(circle at 10% 10%,rgba(37,99,235,.08),transparent 25%),
+              radial-gradient(circle at 90% 15%,rgba(16,185,129,.10),transparent 24%), var(--bg);
+}
+header { max-width:1440px; margin:0 auto; padding:28px 28px 18px; }
+.hero { display:grid; grid-template-columns:1.45fr .9fr; gap:18px; }
+.hero-main {
+  background:linear-gradient(135deg,#13213b,#21416f); color:white; border-radius:28px; padding:28px;
+  box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.hero-main:after { content:""; position:absolute; right:-90px; top:-120px; width:340px; height:340px; border-radius:50%; background:rgba(255,255,255,.08); }
+h1 { margin:0; font-size:clamp(34px,4vw,58px); line-height:1; letter-spacing:-1.2px; }
+.subtitle { color:rgba(255,255,255,.82); font-size:18px; max-width:900px; line-height:1.45; }
+.guide { background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:28px; padding:22px; box-shadow:var(--shadow); }
+.guide h2 { margin:0 0 10px; } .guide ol { margin:0; padding-left:22px; color:var(--muted); line-height:1.6; }
+.toolbar, .selected-actions, main, .feedback { max-width:1440px; margin:0 auto; padding-left:28px; padding-right:28px; }
+.toolbar { display:flex; gap:12px; flex-wrap:wrap; justify-content:space-between; align-items:center; padding-bottom:16px; }
+.controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+button,input {
+  border:1px solid var(--line); background:white; color:var(--ink); border-radius:999px; padding:11px 16px;
+  font-weight:750; box-shadow:0 5px 12px rgba(23,32,51,.06);
+}
+button { cursor:pointer; } button:hover { transform:translateY(-1px); }
+button.primary { background:#13213b; color:white; border-color:#13213b; }
+button.warn { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+input { min-width:260px; font-weight:500; }
+.status { color:var(--muted); }
+main { display:grid; grid-template-columns:370px 1fr; gap:20px; padding-bottom:30px; }
+.task-bank,.matrix-wrap { background:rgba(255,255,255,.88); border:1px solid var(--line); border-radius:28px; box-shadow:var(--shadow); min-height:720px; }
+.panel-header { padding:18px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.panel-header h2 { margin:0; font-size:20px; }
+.pill { font-size:12px; font-weight:900; color:var(--muted); background:#f1f5f9; padding:7px 10px; border-radius:999px; white-space:nowrap; }
+#taskList { padding:16px; display:flex; flex-direction:column; gap:10px; max-height:660px; overflow:auto; }
+.task {
+  background:var(--card); border:1px solid var(--line); border-left:6px solid #94a3b8; border-radius:16px; padding:12px;
+  box-shadow:0 5px 14px rgba(23,32,51,.06); cursor:grab; user-select:none; font-size:14.5px; line-height:1.35;
+}
+.task.selected { outline:3px solid rgba(37,99,235,.28); border-left-color:#2563eb; }
+.task.correct { border-left-color:var(--ok); background:#f0fdf4; }
+.task.incorrect { border-left-color:var(--do); background:#fff1f2; }
+.matrix { padding:16px; display:grid; grid-template-columns:repeat(2,minmax(280px,1fr)); gap:14px; min-height:660px; }
+.quadrant { min-height:315px; background:#fff; border:2px dashed var(--line); border-radius:24px; padding:14px; display:flex; flex-direction:column; gap:10px; transition:.16s; }
+.quadrant.drag-over { transform:scale(1.01); border-color:#2563eb; background:#eff6ff; }
+.q-title { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:4px; }
+.q-title strong { font-size:18px; } .q-title span { font-size:12px; font-weight:900; color:white; padding:6px 9px; border-radius:999px; }
+#do .q-title span { background:var(--do); } #schedule .q-title span { background:var(--schedule); }
+#delegate .q-title span { background:var(--delegate); } #eliminate .q-title span { background:var(--eliminate); }
+#do { border-color:rgba(239,68,68,.36); } #schedule { border-color:rgba(37,99,235,.36); }
+#delegate { border-color:rgba(245,158,11,.48); } #eliminate { border-color:rgba(107,114,128,.36); }
+.hint { color:var(--muted); font-size:13px; line-height:1.4; margin-bottom:6px; }
+.selected-actions { display:none; gap:10px; flex-wrap:wrap; align-items:center; padding-bottom:16px; }
+.selected-actions.show { display:flex; }
+.selected-actions button { border-radius:14px; }
+.feedback { padding-bottom:26px; }
+.feedback-card { display:none; background:white; border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow); padding:18px 20px; color:var(--muted); }
+.feedback-card.show { display:block; } .feedback-card strong { color:var(--ink); }
+dialog { border:none; border-radius:28px; box-shadow:0 30px 90px rgba(23,32,51,.26); max-width:940px; width:calc(100vw - 32px); padding:0; }
+.modal { padding:26px; } .modal h2 { margin:0 0 12px; }
+.answers { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:18px; }
+.answer-box { background:#f8fafc; border:1px solid var(--line); border-radius:18px; padding:14px; }
+.answer-box h3 { margin:0 0 10px; font-size:17px; } .answer-box ul { margin:0; padding-left:19px; line-height:1.55; color:var(--muted); font-size:13px; }
+@media (max-width:1050px) { .hero, main { grid-template-columns:1fr; } #taskList { max-height:360px; } .matrix { grid-template-columns:1fr; } }
+@media (max-width:700px) { header,.toolbar,main,.selected-actions,.feedback { padding-left:14px; padding-right:14px; } input { min-width:100%; } .answers { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+<section class="hero">
+<div class="hero-main">
+<h1>Eisenhower Matrix Challenge</h1>
+<p class="subtitle">Drag student-life tasks into the right priority zone. The goal is not just to be busy — it is to decide what deserves attention first.</p>
+</div>
+<div class="guide">
+<h2>How to play</h2>
+<ol>
+<li>Drag a task card into a quadrant.</li>
+<li>Discuss any “depends” cases with your group.</li>
+<li>Click <strong>Check Answers</strong> to compare with one suggested answer key.</li>
+</ol>
+</div>
+</section>
+</header>
+
+<section class="toolbar">
+<div class="controls">
+<input id="search" type="search" placeholder="Search task..." />
+<button class="primary" id="shuffleBtn">Shuffle tasks</button>
+<button id="checkBtn">Check answers</button>
+<button id="answersBtn">Show answer key</button>
+<button class="warn" id="resetBtn">Reset</button>
+</div>
+<div class="status"><span id="placedCount">0</span>/<span id="totalCount">0</span> tasks placed</div>
+</section>
+
+<section class="selected-actions" id="selectedActions">
+<span class="pill">Mobile mode: move selected card to</span>
+<button data-move="do">Do Now</button>
+<button data-move="schedule">Schedule</button>
+<button data-move="delegate">Limit / Delegate</button>
+<button data-move="eliminate">Reduce</button>
+<button data-move="bank">Back to Bank</button>
+</section>
+
+<main>
+<aside class="task-bank">
+<div class="panel-header"><h2>Task Bank</h2><span class="pill">Drag or tap</span></div>
+<div id="taskList" class="dropzone" data-zone="bank"></div>
+</aside>
+<section class="matrix-wrap">
+<div class="panel-header"><h2>Eisenhower Matrix</h2><span class="pill">Urgent × Important</span></div>
+<div class="matrix">
+<div class="quadrant dropzone" id="do" data-zone="do"><div class="q-title"><strong>Urgent + Important</strong><span>DO NOW</span></div><div class="hint">Crises, deadlines, safety, health, or work that must be handled immediately.</div></div>
+<div class="quadrant dropzone" id="schedule" data-zone="schedule"><div class="q-title"><strong>Important, Not Urgent</strong><span>SCHEDULE</span></div><div class="hint">Planning, studying early, wellbeing routines, preparation, and long-term goals.</div></div>
+<div class="quadrant dropzone" id="delegate" data-zone="delegate"><div class="q-title"><strong>Urgent, Less Important</strong><span>LIMIT / DELEGATE</span></div><div class="hint">Interruptions or quick issues that feel urgent but may not deserve deep attention.</div></div>
+<div class="quadrant dropzone" id="eliminate" data-zone="eliminate"><div class="q-title"><strong>Not Urgent + Not Important</strong><span>REDUCE</span></div><div class="hint">Distractions, avoidance tasks, and low-value activities.</div></div>
+</div>
+</section>
+</main>
+
+<section class="feedback"><div class="feedback-card" id="feedbackCard"></div></section>
+
+<dialog id="answerDialog">
+<div class="modal">
+<h2>Suggested Answer Key</h2>
+<p style="color:var(--muted);line-height:1.55;">Some items are debatable depending on context. Use this answer key as a discussion guide, not an absolute truth.</p>
+<div class="answers" id="answers"></div>
+<div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;"><button onclick="document.getElementById('answerDialog').close()">Close</button></div>
+</div>
+</dialog>
+
+<script>
+const TASKS = [{"text": "Assignment due tomorrow morning", "answer": "do"}, {"text": "Group presentation next week", "answer": "schedule"}, {"text": "Revision for exam in 2 weeks", "answer": "schedule"}, {"text": "Lecturer emailed you asking for a document today", "answer": "do"}, {"text": "You haven’t eaten all day", "answer": "do"}, {"text": "Your friend wants to gossip", "answer": "delegate"}, {"text": "You feel exhausted and need 20 minutes rest", "answer": "do"}, {"text": "Clean your entire room (no deadline)", "answer": "eliminate"}, {"text": "Your laptop just crashed", "answer": "do"}, {"text": "Your phone battery is 2% (charger far away)", "answer": "delegate"}, {"text": "You received a message from someone important", "answer": "delegate"}, {"text": "TikTok notification (not important but urgent-feeling)", "answer": "eliminate"}, {"text": "You have class in 15 minutes", "answer": "do"}, {"text": "You forgot to submit yesterday’s homework (late penalty applies)", "answer": "do"}, {"text": "Your lecturer uploaded new lecture notes", "answer": "schedule"}, {"text": "You need to email your group about meeting time", "answer": "schedule"}, {"text": "You must read one short article before tomorrow’s tutorial", "answer": "do"}, {"text": "Turnitin similarity report shows 30% — needs revision", "answer": "do"}, {"text": "You just received feedback from a lecturer (needs action)", "answer": "schedule"}, {"text": "You need to check your timetable for tomorrow", "answer": "schedule"}, {"text": "You promised to help a classmate understand a topic", "answer": "schedule"}, {"text": "Tutorial prep questions due in 3 days", "answer": "schedule"}, {"text": "A scholarship application closes tonight", "answer": "do"}, {"text": "Class announcement posted: quiz date changed — check details", "answer": "do"}, {"text": "You haven’t showered since morning", "answer": "schedule"}, {"text": "You have to refill your water bottle", "answer": "schedule"}, {"text": "Your room is messy and bothering your focus", "answer": "schedule"}, {"text": "You forgot to take your medication", "answer": "do"}, {"text": "You told your family you would call them today", "answer": "schedule"}, {"text": "You need to buy food for dinner (shops closing soon)", "answer": "do"}, {"text": "You feel anxious and need a 5-minute breathing break", "answer": "do"}, {"text": "You promised to meet a friend later", "answer": "schedule"}, {"text": "You need to print a document (printer far away)", "answer": "schedule"}, {"text": "Your clothes are still in the washing machine", "answer": "delegate"}, {"text": "You want to watch a 10-minute motivational video", "answer": "eliminate"}, {"text": "You haven’t checked your budget in a week", "answer": "schedule"}, {"text": "Fire drill alarm rings", "answer": "do"}, {"text": "Rain starts suddenly and your clothes are outside drying", "answer": "delegate"}, {"text": "Your lecturer suddenly schedules a meeting in 20 minutes", "answer": "do"}, {"text": "Your WiFi stops working", "answer": "do"}, {"text": "You get an email about a job/internship opportunity closing soon", "answer": "do"}, {"text": "You lost your student card", "answer": "do"}, {"text": "Sudden stomach ache — need bathroom ASAP", "answer": "do"}, {"text": "Your GrabFood arrives earlier than expected", "answer": "delegate"}, {"text": "Your class moved to another room (need to walk far)", "answer": "do"}, {"text": "Your friend calls crying — needs emotional support", "answer": "do"}, {"text": "Your transport home is arriving sooner than planned", "answer": "do"}, {"text": "You accidentally deleted a file and need to recover it", "answer": "do"}, {"text": "The electricity goes out", "answer": "do"}, {"text": "Someone tagged you in a drama-filled social media post", "answer": "eliminate"}, {"text": "You must sign an important form before the office closes in 10 minutes", "answer": "do"}, {"text": "You just remembered a birthday today — need to wish or send a message", "answer": "delegate"}, {"text": "Your shoes break while you’re on the way to class", "answer": "do"}, {"text": "The library seat you want is taken", "answer": "eliminate"}, {"text": "You spilled water on your table and need to clean it up", "answer": "do"}, {"text": "You suddenly feel unwell and dizzy", "answer": "do"}, {"text": "Your class group chat is arguing and asking you to respond", "answer": "delegate"}, {"text": "Your lecturer is walking around checking attendance", "answer": "do"}, {"text": "There is a long queue at the cafeteria", "answer": "delegate"}, {"text": "A tutorial question you don’t understand is due soon", "answer": "do"}, {"text": "A friend asks you to help carry something heavy", "answer": "delegate"}, {"text": "Your email inbox is full and cluttered", "answer": "schedule"}];
+const labels = { do:"Do Now", schedule:"Schedule", delegate:"Limit / Delegate", eliminate:"Reduce / Eliminate" };
+const taskList = document.getElementById("taskList");
+const zones = document.querySelectorAll(".dropzone");
+const placedCount = document.getElementById("placedCount");
+const totalCount = document.getElementById("totalCount");
+const search = document.getElementById("search");
+const selectedActions = document.getElementById("selectedActions");
+let selectedCard = null;
+
+function shuffle(array) { for (let i=array.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [array[i],array[j]]=[array[j],array[i]]; } return array; }
+
+function makeCard(task, index) {
+  const card = document.createElement("div");
+  card.className = "task"; card.draggable = true; card.dataset.answer = task.answer; card.dataset.index = index; card.textContent = task.text;
+  card.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", card.dataset.index); card.classList.remove("selected"); });
+  card.addEventListener("click", () => {
+    document.querySelectorAll(".task.selected").forEach(c => c.classList.remove("selected"));
+    selectedCard = card; card.classList.add("selected"); selectedActions.classList.add("show");
+  });
+  return card;
+}
+
+function renderTasks() {
+  totalCount.textContent = TASKS.length; taskList.innerHTML = "";
+  shuffle([...TASKS.keys()]).forEach(i => taskList.appendChild(makeCard(TASKS[i], i)));
+  updateCount();
+}
+
+function moveCardTo(card, zoneName) {
+  const target = zoneName === "bank" ? taskList : document.querySelector(`[data-zone="${zoneName}"]`);
+  if (!target || !card) return;
+  card.classList.remove("correct","incorrect","selected"); target.appendChild(card);
+  selectedCard = null; selectedActions.classList.remove("show"); updateCount();
+}
+
+zones.forEach(zone => {
+  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag-over"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+  zone.addEventListener("drop", e => {
+    e.preventDefault(); zone.classList.remove("drag-over");
+    const idx = e.dataTransfer.getData("text/plain"); const card = document.querySelector(`.task[data-index="${idx}"]`);
+    if (card) moveCardTo(card, zone.dataset.zone);
+  });
+});
+
+document.querySelectorAll("[data-move]").forEach(btn => btn.addEventListener("click", () => moveCardTo(selectedCard, btn.dataset.move)));
+
+function updateCount() { placedCount.textContent = document.querySelectorAll(".matrix .task").length; }
+
+document.getElementById("shuffleBtn").addEventListener("click", () => shuffle([...taskList.querySelectorAll(".task")]).forEach(card => taskList.appendChild(card)));
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (!confirm("Reset all tasks back to the task bank?")) return;
+  document.querySelectorAll(".task").forEach(card => { card.classList.remove("correct","incorrect","selected"); taskList.appendChild(card); });
+  selectedCard = null; selectedActions.classList.remove("show"); updateCount();
+});
+
+document.getElementById("checkBtn").addEventListener("click", () => {
+  let placed = 0, correct = 0;
+  document.querySelectorAll(".matrix .task").forEach(card => {
+    placed++; const zone = card.closest(".dropzone").dataset.zone;
+    if (zone === card.dataset.answer) { correct++; card.classList.add("correct"); card.classList.remove("incorrect"); }
+    else { card.classList.add("incorrect"); card.classList.remove("correct"); }
+  });
+  const fb = document.getElementById("feedbackCard"); fb.classList.add("show");
+  fb.innerHTML = `<strong>Result:</strong> ${correct}/${placed} placed tasks match the suggested answer key.<br><br><strong>Reminder:</strong> Some tasks depend on context. If your group disagrees, explain your reasoning using two questions: <em>Is it urgent?</em> and <em>Is it important?</em>`;
+});
+
+search.addEventListener("input", () => {
+  const q = search.value.toLowerCase().trim();
+  document.querySelectorAll(".task").forEach(card => card.style.display = card.textContent.toLowerCase().includes(q) ? "" : "none");
+});
+
+document.getElementById("answersBtn").addEventListener("click", () => {
+  const answersDiv = document.getElementById("answers"); answersDiv.innerHTML = "";
+  for (const key of ["do","schedule","delegate","eliminate"]) {
+    const box = document.createElement("div"); box.className = "answer-box"; box.innerHTML = `<h3>${labels[key]}</h3>`;
+    const ul = document.createElement("ul");
+    TASKS.filter(t => t.answer === key).forEach(t => { const li = document.createElement("li"); li.textContent = t.text; ul.appendChild(li); });
+    box.appendChild(ul); answersDiv.appendChild(box);
+  }
+  document.getElementById("answerDialog").showModal();
+});
+
+renderTasks();
+</script>
+</body>
+</html>
